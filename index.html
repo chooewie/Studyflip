@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyFlip - Flashcard Ôn Tập</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#6C63FF;--primary-dark:#5a52d5;--secondary:#FF6584;
+  --success:#43D9A2;--warning:#FFB347;--danger:#FF6B6B;
+  --bg:#F0F2FF;--white:#fff;--gray:#6b7280;--text:#1e2a3a;
+  --border:#e0e3f0;--shadow:0 4px 24px rgba(108,99,255,.13);
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+header{background:linear-gradient(135deg,var(--primary),#a78bfa);padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 16px rgba(108,99,255,.25)}
+.logo{font-size:1.45rem;font-weight:800;color:#fff;letter-spacing:-.5px}
+.logo span{color:#ffd6e0}
+.header-btns{display:flex;gap:8px}
+.btn{padding:8px 18px;border-radius:9px;border:none;cursor:pointer;font-size:.88rem;font-weight:700;transition:all .2s}
+.btn-white{background:#fff;color:var(--primary)}
+.btn-white:hover{background:#f0f0ff}
+.btn-outline-white{background:transparent;border:2px solid rgba(255,255,255,.7);color:#fff}
+.btn-outline-white:hover{background:rgba(255,255,255,.15)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-sm{padding:6px 13px;font-size:.8rem}
+.btn-gray{background:#f3f4f6;color:var(--gray)}
+.btn-gray:hover{background:#e5e7eb}
+
+/* CONTAINER */
+.container{max-width:1000px;margin:0 auto;padding:28px 20px}
+
+/* VIEWS */
+.view{display:none}
+.view.active{display:block}
+
+/* HOME */
+.home-hero{text-align:center;padding:40px 20px 32px}
+.home-hero h1{font-size:2rem;font-weight:800;margin-bottom:10px}
+.home-hero h1 span{color:var(--primary)}
+.home-hero p{color:var(--gray);margin-bottom:28px}
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px}
+.stat-card{background:var(--white);border-radius:14px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+.stat-card .num{font-size:1.9rem;font-weight:800;color:var(--primary)}
+.stat-card .lbl{font-size:.8rem;color:var(--gray);font-weight:600}
+.decks-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.decks-header h2{font-size:1.1rem;font-weight:800}
+.decks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.deck-card{background:var(--white);border-radius:16px;padding:22px;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.deck-card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(108,99,255,.18)}
+.deck-card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:var(--deck-color,var(--primary))}
+.deck-icon{font-size:2rem;margin-bottom:10px}
+.deck-name{font-size:1rem;font-weight:700;margin-bottom:4px}
+.deck-meta{font-size:.8rem;color:var(--gray)}
+.deck-progress{margin-top:12px;background:#f0f0ff;border-radius:10px;height:6px;overflow:hidden}
+.deck-progress-bar{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--primary),#a78bfa);transition:width .4s}
+.deck-actions{display:flex;gap:6px;margin-top:14px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--gray)}
+.empty-state .big{font-size:3rem;margin-bottom:12px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--white);border-radius:20px;padding:32px;width:100%;max-width:460px;animation:pop .25s;max-height:90vh;overflow-y:auto}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal h3{font-size:1.2rem;font-weight:800;margin-bottom:20px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.85rem;font-weight:700;margin-bottom:6px;color:var(--gray)}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 14px;border-radius:9px;border:1.5px solid var(--border);font-size:.92rem;outline:none;transition:border .2s;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--primary)}
+.form-group textarea{height:90px;resize:vertical}
+.color-picker{display:flex;gap:8px;flex-wrap:wrap}
+.cp{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s}
+.cp:hover,.cp.active{transform:scale(1.2);border-color:#333}
+.modal-btns{display:flex;gap:10px;margin-top:20px}
+.modal-btns .btn{flex:1}
+
+/* FLASHCARD STUDY */
+.study-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.study-header h2{font-size:1.1rem;font-weight:800;flex:1}
+.progress-wrap{width:100%;background:#e0e3f0;border-radius:10px;height:8px;margin-bottom:24px;overflow:hidden}
+.progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--primary),#a78bfa);transition:width .4s}
+.card-counter{font-size:.85rem;color:var(--gray);font-weight:600}
+
+/* FLIP CARD */
+.flip-scene{width:100%;max-width:600px;height:320px;margin:0 auto 28px;perspective:1000px;cursor:pointer}
+.flip-card{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+.flip-card.flipped{transform:rotateY(180deg)}
+.flip-face{position:absolute;inset:0;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;backface-visibility:hidden;box-shadow:var(--shadow)}
+.flip-front{background:linear-gradient(135deg,var(--primary),#a78bfa);color:#fff}
+.flip-back{background:var(--white);transform:rotateY(180deg);border:2.5px solid var(--border)}
+.flip-label{font-size:.75rem;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.flip-text{font-size:1.25rem;font-weight:700;text-align:center;line-height:1.5}
+.flip-hint{font-size:.8rem;opacity:.6;margin-top:16px}
+.flip-back .flip-text{color:var(--text)}
+
+/* RATING BTNS */
+.rating-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.rate-btn{padding:12px 28px;border-radius:12px;border:none;cursor:pointer;font-size:.95rem;font-weight:700;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.rate-btn small{font-size:.72rem;opacity:.8;font-weight:500}
+.rate-btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.rate-easy{background:var(--success);color:#fff}
+.rate-medium{background:var(--warning);color:#fff}
+.rate-hard{background:var(--danger);color:#fff}
+.study-actions{display:flex;gap:10px;justify-content:center;margin-top:20px}
+
+/* RESULT */
+.result-wrap{text-align:center;padding:20px}
+.result-emoji{font-size:4rem;margin-bottom:12px}
+.result-wrap h2{font-size:1.6rem;font-weight:800;margin-bottom:8px}
+.result-wrap p{color:var(--gray);margin-bottom:24px}
+.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.rs{background:var(--bg);border-radius:12px;padding:16px;text-align:center}
+.rs .n{font-size:1.6rem;font-weight:800}
+.rs .l{font-size:.78rem;color:var(--gray);font-weight:600}
+.rs.easy .n{color:var(--success)}
+.rs.med .n{color:var(--warning)}
+.rs.hard .n{color:var(--danger)}
+
+/* MANAGE CARDS */
+.cards-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.card-item{background:var(--white);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-item .ci-q{flex:1;font-weight:600;font-size:.92rem}
+.card-item .ci-a{flex:1;font-size:.85rem;color:var(--gray)}
+.ci-badge{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700}
+.badge-easy{background:#d1fae5;color:#065f46}
+.badge-medium{background:#fef3c7;color:#92400e}
+.badge-hard{background:#fee2e2;color:#991b1b}
+.badge-new{background:#ede9fe;color:#5b21b6}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:16px}
+.search-wrap input{width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1.5px solid var(--border);font-size:.9rem;outline:none}
+.search-wrap input:focus{border-color:var(--primary)}
+.search-wrap .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--gray)}
+
+/* QUIZ MODE */
+.quiz-option{width:100%;padding:14px 18px;border-radius:12px;border:2px solid var(--border);background:var(--white);text-align:left;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:10px}
+.quiz-option:hover{border-color:var(--primary);background:#f5f3ff}
+.quiz-option.correct{border-color:var(--success);background:#d1fae5;color:#065f46}
+.quiz-option.wrong{border-color:var(--danger);background:#fee2e2;color:#991b1b}
+.quiz-score{font-size:1.1rem;font-weight:700;color:var(--primary);text-align:center;margin-bottom:16px}
+
+@media(max-width:500px){
+  .flip-scene{height:260px}
+  .flip-text{font-size:1.05rem}
+  .rating-btns{gap:8px}
+  .rate-btn{padding:10px 18px}
+  .stats-bar{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Study<span>Flip</span> 🃏</div>
+  <div class="header-btns">
+    <button class="btn btn-outline-white btn-sm" onclick="showView('home')">🏠 Trang chủ</button>
+    <button class="btn btn-white btn-sm" onclick="openGuide()">📖 Hướng dẫn</button>
+  </div>
+</header>
+
+<!-- MODAL HƯỚNG DẪN -->
+<div class="overlay" id="overlayGuide" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <button style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray)" onclick="closeModal('overlayGuide')">✕</button>
+    <h3 style="color:var(--primary);font-size:1.4rem;margin-bottom:6px">🎉 Chào mừng đến StudyFlip!</h3>
+    <p style="color:var(--gray);font-size:.88rem;margin-bottom:22px">Ôn tập thông minh hơn với flashcard — miễn phí, không cần đăng nhập</p>
+
+    <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:18px">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="font-size:1.7rem;min-width:36px;text-align:center">📚</div>
+        <div>
+          <div style="font-weight:700;margin-bottom:3px">Tạo bộ thẻ theo môn học</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.5">Nhấn <b>"Tạo bộ thẻ mới"</b>, đặt tên, chọn môn học, màu sắc và icon yêu thích.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="font-size:1.7rem;min-width:36px;text-align:center">✏️</div>
+        <div>
+          <div style="font-weight:700;margin-bottom:3px">Thêm thẻ câu hỏi & đáp án</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.5">Vào <b>"Quản lý"</b> bộ thẻ → nhấn <b>"+ Thêm thẻ"</b> → nhập câu hỏi và đáp án.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="font-size:1.7rem;min-width:36px;text-align:center">🃏</div>
+        <div>
+          <div style="font-weight:700;margin-bottom:3px">Học với flashcard lật 3D</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.5">Nhấn <b>"▶ Học"</b> → xem câu hỏi → nhấn thẻ để lật xem đáp án → đánh giá mức độ <b>Dễ / Bình thường / Khó</b>.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="font-size:1.7rem;min-width:36px;text-align:center">🧠</div>
+        <div>
+          <div style="font-weight:700;margin-bottom:3px">Spaced Repetition thông minh</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.5">Hệ thống tự động tính ngày nhắc lại: <b>Dễ</b> → 3 ngày sau • <b>Bình thường</b> → 1 ngày sau • <b>Khó</b> → ôn lại ngay hôm sau.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="font-size:1.7rem;min-width:36px;text-align:center">🎯</div>
+        <div>
+          <div style="font-weight:700;margin-bottom:3px">Thi thử trắc nghiệm</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.5">Sau khi học xong, nhấn <b>"Thi thử"</b> để kiểm tra với 4 đáp án ngẫu nhiên. Cần ít nhất <b>4 thẻ</b> để thi thử.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fff8e8;border-left:4px solid var(--warning);padding:12px 16px;border-radius:8px;margin-bottom:20px;font-size:.83rem;line-height:1.7">
+      ⚠️ <b>Lưu ý:</b><br>
+      • Dữ liệu được lưu <b>ngay trên trình duyệt</b> của bạn, không mất khi tắt tab<br>
+      • Nếu xóa lịch sử trình duyệt, dữ liệu có thể bị mất — hãy <b>không xóa cache</b> thường xuyên<br>
+      • Nên tạo ít nhất <b>4 thẻ</b> mỗi bộ để dùng tính năng thi thử
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;padding:13px;font-size:1rem" onclick="closeModal('overlayGuide')">✅ Bắt đầu học ngay!</button>
+  </div>
+</div>
+
+<!-- HOME VIEW -->
+<div class="view active" id="view-home">
+  <div class="container">
+    <div class="home-hero">
+      <h1>Ôn tập <span>thông minh</span> hơn 🚀</h1>
+      <p>Tạo flashcard theo môn học, hệ thống tự nhắc lại những gì bạn hay quên!</p>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+    <div class="decks-header">
+      <h2>📚 Bộ thẻ của tôi</h2>
+      <button class="btn btn-primary btn-sm" onclick="openAddDeck()">+ Tạo bộ thẻ mới</button>
+    </div>
+    <div class="decks-grid" id="decksGrid"></div>
+  </div>
+</div>
+
+<!-- STUDY VIEW -->
+<div class="view" id="view-study">
+  <div class="container">
+    <div class="study-header">
+      <button class="btn btn-gray btn-sm" onclick="showView('home')">← Quay lại</button>
+      <h2 id="studyDeckName"></h2>
+      <span class="card-counter" id="cardCounter"></span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="studyProgress" style="width:0%"></div></div>
+    <div class="flip-scene" onclick="flipCard()">
+      <div class="flip-card" id="flipCard">
+        <div class="flip-face flip-front">
+          <div class="flip-label">❓ Câu hỏi</div>
+          <div class="flip-text" id="cardQuestion"></div>
+          <div class="flip-hint">Nhấn để xem đáp án</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="flip-label">✅ Đáp án</div>
+          <div class="flip-text" id="cardAnswer"></div>
+        </div>
+      </div>
+    </div>
+    <div class="rating-btns" id="ratingBtns" style="display:none">
+      <button class="rate-btn rate-hard" onclick="rateCard('hard')">😓 Khó<small>Nhắc lại sớm</small></button>
+      <button class="rate-btn rate-medium" onclick="rateCard('medium')">🤔 Bình thường<small>Nhắc sau 1 ngày</small></button>
+      <button class="rate-btn rate-easy" onclick="rateCard('easy')">😄 Dễ<small>Nhắc sau 3 ngày</small></button>
+    </div>
+    <div class="study-actions">
+      <button class="btn btn-gray btn-sm" onclick="prevCard()">← Trước</button>
+      <button class="btn btn-primary btn-sm" onclick="flipCard()">🔄 Lật thẻ</button>
+      <button class="btn btn-gray btn-sm" onclick="nextCard()">Tiếp →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT VIEW -->
+<div class="view" id="view-result">
+  <div class="container">
+    <div class="result-wrap">
+      <div class="result-emoji" id="resultEmoji"></div>
+      <h2 id="resultTitle"></h2>
+      <p id="resultMsg"></p>
+      <div class="result-stats">
+        <div class="rs easy"><div class="n" id="resEasy">0</div><div class="l">😄 Dễ</div></div>
+        <div class="rs med"><div class="n" id="resMed">0</div><div class="l">🤔 Bình thường</div></div>
+        <div class="rs hard"><div class="n" id="resHard">0</div><div class="l">😓 Khó</div></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="startStudy(currentDeckId)">🔄 Học lại</button>
+        <button class="btn btn-gray" onclick="showView('home')">🏠 Trang chủ</button>
+        <button class="btn btn-warning" id="quizBtn" onclick="startQuiz()">🎯 Thi thử</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ VIEW -->
+<div class="view" id="view-quiz">
+  <div class="container">
+    <div class="study-header">
+      <button class="btn btn-gray btn-sm" onclick="showView('home')">← Quay lại</button>
+      <h2>🎯 Thi thử</h2>
+      <span class="card-counter" id="quizCounter"></span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="quizProgress" style="width:0%"></div></div>
+    <div class="quiz-score" id="quizScore"></div>
+    <div style="background:var(--white);border-radius:16px;padding:24px;box-shadow:var(--shadow);margin-bottom:20px">
+      <p style="font-size:.8rem;color:var(--gray);font-weight:700;margin-bottom:10px">❓ CÂU HỎI</p>
+      <p style="font-size:1.1rem;font-weight:700" id="quizQuestion"></p>
+    </div>
+    <div id="quizOptions"></div>
+    <div style="text-align:center;margin-top:10px">
+      <button class="btn btn-primary" id="quizNextBtn" style="display:none" onclick="nextQuiz()">Câu tiếp →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE VIEW -->
+<div class="view" id="view-manage">
+  <div class="container">
+    <div class="study-header">
+      <button class="btn btn-gray btn-sm" onclick="showView('home')">← Quay lại</button>
+      <h2 id="manageDeckName"></h2>
+      <button class="btn btn-primary btn-sm" onclick="openAddCard()">+ Thêm thẻ</button>
+    </div>
+    <div class="search-wrap">
+      <span class="ico">🔍</span>
+      <input type="text" placeholder="Tìm kiếm thẻ..." id="searchInput" oninput="renderCards()">
+    </div>
+    <div class="cards-list" id="cardsList"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="overlayAddDeck" style="display:none">
+  <div class="modal">
+    <h3 id="deckModalTitle">➕ Tạo bộ thẻ mới</h3>
+    <div class="form-group"><label>Tên bộ thẻ</label><input type="text" id="deckName" placeholder="VD: Sinh học lớp 11"></div>
+    <div class="form-group"><label>Môn học</label>
+      <select id="deckSubject">
+        <option>Toán</option><option>Vật lý</option><option>Hóa học</option>
+        <option>Sinh học</option><option>Lịch sử</option><option>Địa lý</option>
+        <option>Tiếng Anh</option><option>Ngữ văn</option><option>Tin học</option><option>Khác</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Màu sắc</label>
+      <div class="color-picker">
+        <div class="cp active" style="background:#6C63FF" data-color="#6C63FF" onclick="pickColor(this)"></div>
+        <div class="cp" style="background:#FF6584" data-color="#FF6584" onclick="pickColor(this)"></div>
+        <div class="cp" style="background:#43D9A2" data-color="#43D9A2" onclick="pickColor(this)"></div>
+        <div class="cp" style="background:#FFB347" data-color="#FFB347" onclick="pickColor(this)"></div>
+        <div class="cp" style="background:#4F8EF7" data-color="#4F8EF7" onclick="pickColor(this)"></div>
+        <div class="cp" style="background:#a78bfa" data-color="#a78bfa" onclick="pickColor(this)"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>Icon</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">📚</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">🔬</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">🧪</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">🧬</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">📐</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">🌍</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">🗺️</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">🇬🇧</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">✏️</span>
+        <span style="cursor:pointer;font-size:1.5rem" onclick="pickIcon(this)">💻</span>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-gray" onclick="closeModal('overlayAddDeck')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveDeck()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayAddCard" style="display:none">
+  <div class="modal">
+    <h3 id="cardModalTitle">➕ Thêm thẻ mới</h3>
+    <div class="form-group"><label>❓ Câu hỏi / Mặt trước</label><textarea id="cardQ" placeholder="VD: Quang hợp là gì?"></textarea></div>
+    <div class="form-group"><label>✅ Đáp án / Mặt sau</label><textarea id="cardA" placeholder="VD: Quang hợp là quá trình..."></textarea></div>
+    <div class="modal-btns">
+      <button class="btn btn-gray" onclick="closeModal('overlayAddCard')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveCard()">💾 Lưu thẻ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ DATA ============
+let data = {decks:[], cards:[]};
+let currentDeckId = null;
+let studyQueue = [], studyIdx = 0, isFlipped = false;
+let sessionRating = {easy:0, medium:0, hard:0};
+let quizCards = [], quizIdx = 0, quizCorrect = 0;
+let editingDeck = null, editingCard = null;
+let selectedColor = '#6C63FF', selectedIcon = '📚';
+
+function save() { localStorage.setItem('studyflip', JSON.stringify(data)); }
+function load() {
+  const d = localStorage.getItem('studyflip');
+  if (d) data = JSON.parse(d);
+  else {
+    // Demo data
+    const id = uid();
+    data.decks.push({id, name:'Tiếng Anh cơ bản', subject:'Tiếng Anh', color:'#4F8EF7', icon:'🇬🇧', created:Date.now()});
+    data.cards.push(
+      {id:uid(), deckId:id, q:'What does "photosynthesis" mean?', a:'Quang hợp — quá trình cây xanh tổng hợp chất hữu cơ từ CO₂ và nước nhờ ánh sáng', level:'new', nextReview:0},
+      {id:uid(), deckId:id, q:'Nghĩa của "perseverance" là gì?', a:'Sự kiên trì, bền bỉ — tính chất không bỏ cuộc dù gặp khó khăn', level:'new', nextReview:0},
+      {id:uid(), deckId:id, q:'"Ambiguous" có nghĩa là gì?', a:'Mơ hồ, không rõ ràng — có thể hiểu theo nhiều cách khác nhau', level:'new', nextReview:0}
+    );
+    save();
+  }
+}
+function uid() { return Math.random().toString(36).slice(2,10); }
+function openGuide() { document.getElementById('overlayGuide').style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ============ VIEWS ============
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if (v === 'home') renderHome();
+  if (v === 'manage') renderCards();
+}
+
+// ============ HOME ============
+function renderHome() {
+  // Stats
+  const total = data.cards.length;
+  const due = data.cards.filter(c => c.nextReview <= Date.now()).length;
+  const learned = data.cards.filter(c => c.level !== 'new').length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><div class="num">${data.decks.length}</div><div class="lbl">📚 Bộ thẻ</div></div>
+    <div class="stat-card"><div class="num">${total}</div><div class="lbl">🃏 Tổng thẻ</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--danger)">${due}</div><div class="lbl">⏰ Cần ôn hôm nay</div></div>
+  `;
+  // Decks
+  const g = document.getElementById('decksGrid');
+  if (!data.decks.length) {
+    g.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">📭</div><p>Chưa có bộ thẻ nào.<br>Nhấn <b>"Tạo bộ thẻ mới"</b> để bắt đầu!</p></div>`;
+    return;
+  }
+  g.innerHTML = data.decks.map(deck => {
+    const cards = data.cards.filter(c => c.deckId === deck.id);
+    const dueN = cards.filter(c => c.nextReview <= Date.now()).length;
+    const learnedN = cards.filter(c => c.level !== 'new').length;
+    const pct = cards.length ? Math.round(learnedN/cards.length*100) : 0;
+    return `<div class="deck-card" style="--deck-color:${deck.color}">
+      <div class="deck-icon">${deck.icon}</div>
+      <div class="deck-name">${deck.name}</div>
+      <div class="deck-meta">${deck.subject} • ${cards.length} thẻ${dueN ? ` • <b style="color:var(--danger)">${dueN} cần ôn</b>` : ''}</div>
+      <div class="deck-progress"><div class="deck-progress-bar" style="width:${pct}%"></div></div>
+      <div style="font-size:.75rem;color:var(--gray);margin-top:4px">${pct}% hoàn thành</div>
+      <div class="deck-actions">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startStudy('${deck.id}')">▶ Học</button>
+        <button class="btn btn-warning btn-sm" onclick="event.stopPropagation();openManage('${deck.id}')">✏️ Quản lý</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDeck('${deck.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============ DECK CRUD ============
+function openAddDeck() {
+  editingDeck = null;
+  document.getElementById('deckModalTitle').textContent = '➕ Tạo bộ thẻ mới';
+  document.getElementById('deckName').value = '';
+  selectedColor = '#6C63FF'; selectedIcon = '📚';
+  document.querySelectorAll('.cp').forEach(c => c.classList.toggle('active', c.dataset.color === selectedColor));
+  document.getElementById('overlayAddDeck').style.display = 'flex';
+}
+function pickColor(el) {
+  document.querySelectorAll('.cp').forEach(c => c.classList.remove('active'));
+  el.classList.add('active'); selectedColor = el.dataset.color;
+}
+function pickIcon(el) { selectedIcon = el.textContent; }
+function saveDeck() {
+  const name = document.getElementById('deckName').value.trim();
+  const subject = document.getElementById('deckSubject').value;
+  if (!name) { alert('Vui lòng nhập tên bộ thẻ!'); return; }
+  if (editingDeck) {
+    const d = data.decks.find(d => d.id === editingDeck);
+    d.name = name; d.subject = subject; d.color = selectedColor; d.icon = selectedIcon;
+  } else {
+    data.decks.push({id:uid(), name, subject, color:selectedColor, icon:selectedIcon, created:Date.now()});
+  }
+  save(); closeModal('overlayAddDeck'); renderHome();
+}
+function deleteDeck(id) {
+  if (!confirm('Xóa bộ thẻ này? Tất cả thẻ bên trong cũng sẽ bị xóa!')) return;
+  data.decks = data.decks.filter(d => d.id !== id);
+  data.cards = data.cards.filter(c => c.deckId !== id);
+  save(); renderHome();
+}
+
+// ============ CARD CRUD ============
+function openManage(deckId) {
+  currentDeckId = deckId;
+  const deck = data.decks.find(d => d.id === deckId);
+  document.getElementById('manageDeckName').textContent = deck.icon + ' ' + deck.name;
+  showView('manage');
+}
+function openAddCard() {
+  editingCard = null;
+  document.getElementById('cardModalTitle').textContent = '➕ Thêm thẻ mới';
+  document.getElementById('cardQ').value = '';
+  document.getElementById('cardA').value = '';
+  document.getElementById('overlayAddCard').style.display = 'flex';
+}
+function openEditCard(id) {
+  editingCard = id;
+  const c = data.cards.find(c => c.id === id);
+  document.getElementById('cardModalTitle').textContent = '✏️ Sửa thẻ';
+  document.getElementById('cardQ').value = c.q;
+  document.getElementById('cardA').value = c.a;
+  document.getElementById('overlayAddCard').style.display = 'flex';
+}
+function saveCard() {
+  const q = document.getElementById('cardQ').value.trim();
+  const a = document.getElementById('cardA').value.trim();
+  if (!q || !a) { alert('Vui lòng nhập đủ câu hỏi và đáp án!'); return; }
+  if (editingCard) {
+    const c = data.cards.find(c => c.id === editingCard);
+    c.q = q; c.a = a;
+  } else {
+    data.cards.push({id:uid(), deckId:currentDeckId, q, a, level:'new', nextReview:0});
+  }
+  save(); closeModal('overlayAddCard'); renderCards();
+}
+function deleteCard(id) {
+  if (!confirm('Xóa thẻ này?')) return;
+  data.cards = data.cards.filter(c => c.id !== id);
+  save(); renderCards();
+}
+function renderCards() {
+  const q = (document.getElementById('searchInput')?.value||'').toLowerCase();
+  const cards = data.cards.filter(c => c.deckId === currentDeckId && (c.q.toLowerCase().includes(q) || c.a.toLowerCase().includes(q)));
+  const badgeMap = {new:'badge-new', easy:'badge-easy', medium:'badge-medium', hard:'badge-hard'};
+  const labelMap = {new:'Mới', easy:'Dễ', medium:'Bình thường', hard:'Khó'};
+  document.getElementById('cardsList').innerHTML = cards.length
+    ? cards.map(c => `<div class="card-item">
+        <div class="ci-q">${c.q}</div>
+        <div class="ci-a">${c.a}</div>
+        <span class="ci-badge ${badgeMap[c.level]}">${labelMap[c.level]}</span>
+        <button class="btn btn-gray btn-sm" onclick="openEditCard('${c.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCard('${c.id}')">🗑</button>
+      </div>`).join('')
+    : '<div class="empty-state"><div class="big">📭</div><p>Chưa có thẻ nào. Nhấn <b>"+ Thêm thẻ"</b>!</p></div>';
+}
+
+// ============ STUDY ============
+function startStudy(deckId) {
+  currentDeckId = deckId;
+  const deck = data.decks.find(d => d.id === deckId);
+  const cards = data.cards.filter(c => c.deckId === deckId);
+  if (!cards.length) { alert('Bộ thẻ này chưa có thẻ nào!'); return; }
+  // Spaced repetition: ưu tiên thẻ đến hạn, sau đó thẻ mới
+  const due = cards.filter(c => c.nextReview <= Date.now());
+  const newCards = cards.filter(c => c.level === 'new' && c.nextReview > Date.now());
+  studyQueue = [...shuffle(due), ...shuffle(newCards)];
+  if (!studyQueue.length) studyQueue = shuffle(cards);
+  studyIdx = 0; isFlipped = false;
+  sessionRating = {easy:0, medium:0, hard:0};
+  document.getElementById('studyDeckName').textContent = deck.icon + ' ' + deck.name;
+  showView('study');
+  renderStudyCard();
+}
+
+function renderStudyCard() {
+  if (studyIdx >= studyQueue.length) { showResult(); return; }
+  const c = studyQueue[studyIdx];
+  document.getElementById('cardQuestion').textContent = c.q;
+  document.getElementById('cardAnswer').textContent = c.a;
+  document.getElementById('cardCounter').textContent = `${studyIdx+1} / ${studyQueue.length}`;
+  document.getElementById('studyProgress').style.width = `${(studyIdx/studyQueue.length)*100}%`;
+  const fc = document.getElementById('flipCard');
+  fc.classList.remove('flipped'); isFlipped = false;
+  document.getElementById('ratingBtns').style.display = 'none';
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('flipCard').classList.toggle('flipped', isFlipped);
+  document.getElementById('ratingBtns').style.display = isFlipped ? 'flex' : 'none';
+}
+
+function rateCard(rating) {
+  const c = studyQueue[studyIdx];
+  const card = data.cards.find(x => x.id === c.id);
+  card.level = rating;
+  const days = rating === 'easy' ? 3 : rating === 'medium' ? 1 : 0.25;
+  card.nextReview = Date.now() + days * 86400000;
+  sessionRating[rating]++;
+  save();
+  studyIdx++;
+  renderStudyCard();
+}
+
+function prevCard() { if (studyIdx > 0) { studyIdx--; renderStudyCard(); } }
+function nextCard() { studyIdx++; renderStudyCard(); }
+
+function showResult() {
+  const total = studyQueue.length;
+  const score = Math.round((sessionRating.easy * 100 + sessionRating.medium * 60) / total);
+  document.getElementById('resEasy').textContent = sessionRating.easy;
+  document.getElementById('resMed').textContent = sessionRating.medium;
+  document.getElementById('resHard').textContent = sessionRating.hard;
+  const emojis = score >= 80 ? '🎉' : score >= 50 ? '👍' : '💪';
+  const titles = score >= 80 ? 'Xuất sắc!' : score >= 50 ? 'Tốt lắm!' : 'Cố lên!';
+  const msgs = score >= 80 ? 'Bạn đã nắm vững phần này rồi!' : score >= 50 ? 'Tiếp tục ôn luyện nhé!' : 'Đừng nản lòng, ôn lại nhé!';
+  document.getElementById('resultEmoji').textContent = emojis;
+  document.getElementById('resultTitle').textContent = titles;
+  document.getElementById('resultMsg').textContent = msgs;
+  const cards = data.cards.filter(c => c.deckId === currentDeckId);
+  document.getElementById('quizBtn').style.display = cards.length >= 4 ? 'inline-block' : 'none';
+  showView('result');
+}
+
+// ============ QUIZ ============
+function startQuiz() {
+  const cards = data.cards.filter(c => c.deckId === currentDeckId);
+  if (cards.length < 4) { alert('Cần ít nhất 4 thẻ để thi thử!'); return; }
+  quizCards = shuffle(cards);
+  quizIdx = 0; quizCorrect = 0;
+  showView('quiz');
+  renderQuiz();
+}
+
+function renderQuiz() {
+  if (quizIdx >= quizCards.length) { showQuizResult(); return; }
+  const c = quizCards[quizIdx];
+  const others = data.cards.filter(x => x.deckId === currentDeckId && x.id !== c.id);
+  const wrong = shuffle(others).slice(0,3).map(x => x.a);
+  const opts = shuffle([c.a, ...wrong]);
+  document.getElementById('quizQuestion').textContent = c.q;
+  document.getElementById('quizCounter').textContent = `${quizIdx+1} / ${quizCards.length}`;
+  document.getElementById('quizProgress').style.width = `${(quizIdx/quizCards.length)*100}%`;
+  document.getElementById('quizScore').textContent = `✅ Đúng: ${quizCorrect} / ${quizIdx}`;
+  document.getElementById('quizNextBtn').style.display = 'none';
+  document.getElementById('quizOptions').innerHTML = opts.map(o =>
+    `<button class="quiz-option" onclick="selectQuiz(this,'${encodeURIComponent(o)}','${encodeURIComponent(c.a)}')">${o}</button>`
+  ).join('');
+}
+
+function selectQuiz(btn, selected, correct) {
+  const s = decodeURIComponent(selected), c = decodeURIComponent(correct);
+  document.querySelectorAll('.quiz-option').forEach(b => b.disabled = true);
+  document.querySelectorAll('.quiz-option').forEach(b => {
+    if (decodeURIComponent(b.getAttribute('onclick').match(/'([^']+)'\)$/)?.[1]||'') === c) b.classList.add('correct');
+  });
+  if (s === c) { btn.classList.add('correct'); quizCorrect++; }
+  else btn.classList.add('wrong');
+  document.getElementById('quizNextBtn').style.display = 'inline-block';
+}
+
+function nextQuiz() { quizIdx++; renderQuiz(); }
+
+function showQuizResult() {
+  const pct = Math.round(quizCorrect/quizCards.length*100);
+  const emoji = pct>=80?'🏆':pct>=60?'🎯':'📖';
+  alert(`${emoji} Kết quả thi thử\n\nĐúng: ${quizCorrect}/${quizCards.length} (${pct}%)\n\n${pct>=80?'Xuất sắc! 🎉':pct>=60?'Khá tốt! Cố gắng thêm nhé!':'Cần ôn thêm nhé!'}`);
+  showView('result');
+}
+
+// ============ UTILS ============
+function shuffle(arr) { return [...arr].sort(()=>Math.random()-.5); }
+
+// Close modal on overlay click
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.style.display = 'none'; });
+});
+
+// ============ INIT ============
+load();
+renderHome();
+// Hiện hướng dẫn lần đầu truy cập
+if (!localStorage.getItem('studyflip_visited')) {
+  openGuide();
+  localStorage.setItem('studyflip_visited', '1');
+}
+</script>
+</body>
+</html>
